@@ -1,22 +1,41 @@
+const adminRouter = require("./routes/admin");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 require("dotenv").config();
 
 const vehiculosRouter = require("./routes/vehiculos");
-const adminRouter = require("./routes/admin");
-const uploadRouter = require("./routes/upload"); // <-- NUEVO
+const uploadRouter = require("./routes/upload"); // <-- si tienes uploads
 
 const app = express();
 
-app.use(express.json());
+// IMPORTANTE: primero CORS, luego body/json, luego rutas
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://catalogovehiculos.netlify.app",
+];
 
-// CORS para React local
+// Permitir preflight de forma correcta
 app.use(
   cors({
-    origin: ["http://localhost:3000"],
+    origin: function (origin, cb) {
+      // Permite requests sin origin (ej. health checks, curl, server-to-server)
+      if (!origin) return cb(null, true);
+
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+
+      return cb(new Error("Not allowed by CORS: " + origin));
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-admin-token"],
+    credentials: false,
   })
 );
+
+// Responder preflight en todas las rutas
+app.options("*", cors());
+
+app.use(express.json());
 
 // Servir imágenes estáticas
 app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
@@ -27,13 +46,7 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 // API
 app.use("/api/vehiculos", vehiculosRouter);
 app.use("/api/admin", adminRouter);
-app.use("/api/upload", uploadRouter); // <-- NUEVO (esto habilita /api/upload/multiple)
-
-// (Opcional recomendado) error handler JSON para evitar HTML
-app.use((err, req, res, next) => {
-  console.error("ERROR:", err);
-  res.status(500).json({ message: err.message || "Error interno del servidor" });
-});
+app.use("/api/upload", uploadRouter); // <-- si usas upload
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
