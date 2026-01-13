@@ -2,11 +2,12 @@ const adminRouter = require("./routes/admin");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const planesRouter = require("./routes/planes");
 require("dotenv").config();
 
 const vehiculosRouter = require("./routes/vehiculos");
 const uploadRouter = require("./routes/upload"); // <-- si tienes uploads
-
+const adminPlanesRouter = require("./routes/adminPlanes");
 const app = express();
 
 // IMPORTANTE: primero CORS, luego body/json, luego rutas
@@ -14,6 +15,10 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://catalogovehiculos.netlify.app",
 ];
+
+app.use("/api/planes", planesRouter);
+app.use("/api/admin", adminRouter);           // login (y/o legacy)
+app.use("/api/admin", adminPlanesRouter);     // /api/admin/planes CRUD
 
 // Permitir preflight de forma correcta
 app.use(
