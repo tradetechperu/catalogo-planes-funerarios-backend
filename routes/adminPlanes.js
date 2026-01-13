@@ -23,7 +23,10 @@ function writePlanes(list) {
 
 function requireAdmin(req, res, next) {
   const auth = req.headers.authorization || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : (req.headers["x-admin-token"] || "");
+  const token = auth.startsWith("Bearer ")
+    ? auth.slice(7)
+    : (req.headers["x-admin-token"] || "");
+
   if (!token) return res.status(401).json({ message: "No autorizado" });
 
   try {
@@ -38,7 +41,47 @@ function requireAdmin(req, res, next) {
   }
 }
 
-// CRUD PLANES (admin)
+/**
+ * =========================
+ * LOGIN ADMIN
+ * POST /api/admin/login
+ * =========================
+ */
+router.post("/login", (req, res) => {
+  const { user, pass } = req.body || {};
+
+  const ADMIN_USER = (process.env.ADMIN_USER || "admin").trim();
+  const ADMIN_PASS = String(process.env.ADMIN_PASS || "").trim(); // en prod DEBE venir de env
+
+  // Si no configuraste ADMIN_PASS en Render, te lo digo claramente
+  if (!ADMIN_PASS) {
+    return res.status(500).json({
+      message: "ADMIN_PASS no configurado en el servidor (Render).",
+    });
+  }
+
+  const u = String(user || "").trim();
+  const p = String(pass || "").trim();
+
+  if (u !== ADMIN_USER || p !== ADMIN_PASS) {
+    return res.status(401).json({ message: "Credenciales inválidas" });
+  }
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return res.status(500).json({ message: "JWT_SECRET no configurado" });
+
+  // token 8 horas (ajústalo si quieres)
+  const token = jwt.sign({ sub: u, role: "admin" }, secret, { expiresIn: "8h" });
+
+  return res.json({ ok: true, token });
+});
+
+/**
+ * =========================
+ * CRUD PLANES (ADMIN)
+ * =========================
+ */
+
 // GET /api/admin/planes
 router.get("/planes", requireAdmin, (req, res) => {
   res.json(readPlanes());
