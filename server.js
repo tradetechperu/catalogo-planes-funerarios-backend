@@ -4,17 +4,16 @@ const path = require("path");
 require("dotenv").config();
 
 const planesRouter = require("./routes/planes");
-const vehiculosRouter = require("./routes/vehiculos");
 const uploadRouter = require("./routes/upload");
 const adminPlanesRouter = require("./routes/adminPlanes");
 
 const app = express();
 
 // ===== CORS PRIMERO =====
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://catalogovehiculos.netlify.app",
-];
+// En Render define FRONTEND_ORIGIN con tu Netlify final.
+// Local: localhost.
+const allowedOrigins = ["http://localhost:3000"];
+if (process.env.FRONTEND_ORIGIN) allowedOrigins.push(process.env.FRONTEND_ORIGIN);
 
 app.use(
   cors({
@@ -33,7 +32,7 @@ app.use(
 app.options(/.*/, cors());
 
 // ===== BODY PARSER =====
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 // ===== STATIC FILES =====
 app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
@@ -42,12 +41,11 @@ app.use("/uploads", express.static(path.join(__dirname, "public", "uploads")));
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 // ===== API PUBLICA =====
-app.use("/api/planes", planesRouter);       // público: listado/ detalle planes
-app.use("/api/vehiculos", vehiculosRouter); // si aún lo dejas
+app.use("/api/planes", planesRouter);
 
 // ===== API ADMIN =====
-app.use("/api/admin", adminPlanesRouter);   // admin login + CRUD planes (y lo que pongas allí)
-app.use("/api/upload", uploadRouter);       // uploads
+app.use("/api/admin", adminPlanesRouter);
+app.use("/api/upload", uploadRouter);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Backend activo en http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Backend activo en puerto ${PORT}`));
