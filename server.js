@@ -10,13 +10,20 @@ const adminPlanesRouter = require("./routes/adminPlanes");
 const app = express();
 
 // ===== CORS PRIMERO (robusto) =====
-const allowedOrigins = new Set(["http://localhost:3000"]);
+const cors = require("cors");
 
+// Lista explícita
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "https://catalogo-planes-funerarios-frontend.netlify.app",
+]);
+
+// Si deseas mantener env var, también la tomamos
 if (process.env.FRONTEND_ORIGIN) {
   allowedOrigins.add(process.env.FRONTEND_ORIGIN.trim());
 }
 
-// opcional: lista separada por comas
+// Lista separada por comas (opcional)
 if (process.env.FRONTEND_ORIGINS) {
   process.env.FRONTEND_ORIGINS.split(",")
     .map((s) => s.trim())
@@ -24,15 +31,19 @@ if (process.env.FRONTEND_ORIGINS) {
     .forEach((o) => allowedOrigins.add(o));
 }
 
+// Permitir Netlify previews (opcional pero útil)
+const netlifyRegex = /^https:\/\/.*\.netlify\.app$/;
+
 app.use(
   cors({
     origin: (origin, cb) => {
-      // healthchecks / server-to-server (sin origin)
       if (!origin) return cb(null, true);
 
-      if (allowedOrigins.has(origin)) return cb(null, true);
+      if (allowedOrigins.has(origin) || netlifyRegex.test(origin)) {
+        return cb(null, true);
+      }
 
-      // NO lanzar error (evita 500 en preflight). Simplemente no habilitamos CORS.
+      // No explotar con 500: simplemente no habilitar CORS
       return cb(null, false);
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -42,7 +53,7 @@ app.use(
   })
 );
 
-// Preflight explícito
+// Preflight compatible
 app.options(/.*/, cors());
 
 // ===== BODY PARSER =====
