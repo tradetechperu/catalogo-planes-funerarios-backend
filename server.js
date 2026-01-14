@@ -9,27 +9,41 @@ const adminPlanesRouter = require("./routes/adminPlanes");
 
 const app = express();
 
-// ===== CORS PRIMERO =====
-// En Render define FRONTEND_ORIGIN con tu Netlify final.
-// Local: localhost.
-const allowedOrigins = ["http://localhost:3000"];
-if (process.env.FRONTEND_ORIGIN) allowedOrigins.push(process.env.FRONTEND_ORIGIN);
+// ===== CORS PRIMERO (robusto) =====
+const allowedOrigins = new Set(["http://localhost:3000"]);
+
+if (process.env.FRONTEND_ORIGIN) {
+  allowedOrigins.add(process.env.FRONTEND_ORIGIN.trim());
+}
+
+// opcional: lista separada por comas
+if (process.env.FRONTEND_ORIGINS) {
+  process.env.FRONTEND_ORIGINS.split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .forEach((o) => allowedOrigins.add(o));
+}
 
 app.use(
   cors({
-    origin: function (origin, cb) {
-      if (!origin) return cb(null, true); // curl/healthchecks
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(new Error("Not allowed by CORS: " + origin));
+    origin: (origin, cb) => {
+      // healthchecks / server-to-server (sin origin)
+      if (!origin) return cb(null, true);
+
+      if (allowedOrigins.has(origin)) return cb(null, true);
+
+      // NO lanzar error (evita 500 en preflight). Simplemente no habilitamos CORS.
+      return cb(null, false);
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-admin-token"],
     credentials: false,
+    optionsSuccessStatus: 204,
   })
 );
 
-// Preflight para todo
-app.options(/.*/, cors());
+// Preflight explícito
+app.options("*", cors());
 
 // ===== BODY PARSER =====
 app.use(express.json({ limit: "10mb" }));
