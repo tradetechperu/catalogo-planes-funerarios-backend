@@ -43,7 +43,7 @@ app.use(
 );
 
 // Preflight explícito
-app.options("*", cors());
+app.options(/.*/, cors());
 
 // ===== BODY PARSER =====
 app.use(express.json({ limit: "10mb" }));
